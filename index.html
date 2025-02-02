@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>JSON-RPC Client</title>
+    <script type="module">
+      import {
+        html,
+        render,
+        useState,
+        useEffect
+      } from 'https://unpkg.com/htm@3.0.4/preact/standalone.module.js'
+
+      function App() {
+        const [method, setMethod] = useState('initialize')
+        const [params, setParams] = useState('')
+        const [response, setResponse] = useState(null)
+        const [error, setError] = useState(null)
+        const [history, setHistory] = useState([])
+
+        const sendRequest = async () => {
+          try {
+            const requestBody = {
+              jsonrpc: '2.0',
+              id: Date.now(),
+              method: method,
+              params: params ? JSON.parse(params) : undefined
+            }
+
+            const response = await fetch('http://localhost:4000', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json'
+              },
+              body: JSON.stringify(requestBody)
+            })
+
+            const data = await response.json()
+            setResponse(data)
+            setError(null)
+            setHistory([
+              ...history,
+              {
+                timestamp: new Date().toISOString(),
+                request: requestBody,
+                response: data
+              }
+            ])
+          } catch (err) {
+            setError(err.message)
+            setResponse(null)
+          }
+        }
+
+        return html`
+          <div class="container">
+            <h1>JSON-RPC Client</h1>
+
+            <div class="request-form">
+              <div class="form-group">
+                <label>Method:</label>
+                <select
+                  value=${method}
+                  onChange=${e => setMethod(e.target.value)}
+                >
+                  <option value="initialize">initialize</option>
+                  <option value="echo">echo</option>
+                </select>
+              </div>
+
+              <div class="form-group">
+                <label>Params (JSON):</label>
+                <textarea
+                  value=${params}
+                  onChange=${e => setParams(e.target.value)}
+                  placeholder="Enter JSON params..."
+                ></textarea>
+              </div>
+
+              <button onClick=${sendRequest}>Send Request</button>
+            </div>
+
+            ${error && html`<div class="error">Error: ${error}</div>`}
+            ${response &&
+            html`
+              <div class="response">
+                <h3>Latest Response:</h3>
+                <pre>${JSON.stringify(response, null, 2)}</pre>
+              </div>
+            `}
+
+            <div class="history">
+              <h3>Request History</h3>
+              ${history.map(
+                entry => html`
+                  <div class="history-entry">
+                    <div class="timestamp">${entry.timestamp}</div>
+                    <div class="request-response">
+                      <pre class="request">
+Request: ${JSON.stringify(entry.request, null, 2)}</pre
+                      >
+                      <pre class="response">
+Response: ${JSON.stringify(entry.response, null, 2)}</pre
+                      >
+                    </div>
+                  </div>
+                `
+              )}
+            </div>
+          </div>
+
+          <style>
+            body {
+              font-family: Arial, sans-serif;
+              line-height: 1.6;
+              margin: 0;
+              padding: 20px;
+              background: #f5f5f5;
+            }
+            .container {
+              max-width: 800px;
+              margin: 0 auto;
+              background: white;
+              padding: 20px;
+              border-radius: 8px;
+              box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+            h1 {
+              color: #333;
+              text-align: center;
+            }
+            .request-form {
+              margin-bottom: 20px;
+            }
+            .form-group {
+              margin-bottom: 15px;
+            }
+            label {
+              display: block;
+              margin-bottom: 5px;
+              font-weight: bold;
+            }
+            select,
+            textarea {
+              width: 100%;
+              padding: 8px;
+              border: 1px solid #ddd;
+              border-radius: 4px;
+              margin-bottom: 10px;
+            }
+            textarea {
+              height: 100px;
+              font-family: monospace;
+            }
+            button {
+              background: #4caf50;
+              color: white;
+              padding: 10px 20px;
+              border: none;
+              border-radius: 4px;
+              cursor: pointer;
+            }
+            button:hover {
+              background: #45a049;
+            }
+            .error {
+              color: red;
+              padding: 10px;
+              background: #ffe6e6;
+              border-radius: 4px;
+              margin: 10px 0;
+            }
+            .response,
+            .history-entry {
+              background: #f8f9fa;
+              padding: 15px;
+              border-radius: 4px;
+              margin: 10px 0;
+            }
+            pre {
+              white-space: pre-wrap;
+              word-wrap: break-word;
+              background: #f1f1f1;
+              padding: 10px;
+              border-radius: 4px;
+              margin: 5px 0;
+            }
+            .timestamp {
+              color: #666;
+              font-size: 0.9em;
+              margin-bottom: 5px;
+            }
+            .history-entry {
+              border-left: 4px solid #4caf50;
+            }
+          </style>
+        `
+      }
+
+      render(html`<${App} />`, document.body)
+    </script>
+  </head>
+  <body></body>
+</html>
